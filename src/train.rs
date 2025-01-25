@@ -1,3 +1,5 @@
+use std::{io::Write, time::Duration};
+
 use burn::{
     lr_scheduler::exponential::ExponentialLrSchedulerConfig,
     optim::AdamConfig,
@@ -41,4 +43,6 @@ pub fn train<B: AutodiffBackend>(device: &B::Device) {
         .build(model, optimizer, lr_scheduler);
 
     learner.fit(loader_train, loader_valid);
+    std::io::stdout().flush().ok();
+    std::thread::sleep(Duration::from_millis(100));
 }
