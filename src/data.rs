@@ -43,25 +43,29 @@ impl<B: Backend> Batcher<usize, AddBatch<B>> for AddBatcher<B> {
             })
             .collect();
 
-        let inputs = items
-            .iter()
-            .map(|(first, second)| {
-                let first = bits_tensor(*first, crate::BITS_IN, &self.0);
-                let second = bits_tensor(*second, crate::BITS_IN, &self.0);
-                Tensor::cat(vec![first, second], 0).to_device(&self.0)
-            })
-            .collect();
-
-        let outputs = items
-            .iter()
-            .map(|(first, second)| bits_tensor(first + second, crate::BITS_OUT, &self.0))
-            .collect();
-
-        let inputs = Tensor::stack(inputs, 0);
-        let outputs = Tensor::stack(outputs, 0);
-
-        AddBatch { inputs, outputs }
+        create_batch(&self.0, items)
     }
+}
+
+pub fn create_batch<B: Backend>(device: &B::Device, items: Vec<(usize, usize)>) -> AddBatch<B> {
+    let inputs = items
+        .iter()
+        .map(|(first, second)| {
+            let first = bits_tensor(*first, crate::BITS_IN, device);
+            let second = bits_tensor(*second, crate::BITS_IN, device);
+            Tensor::cat(vec![first, second], 0).to_device(device)
+        })
+        .collect();
+
+    let outputs = items
+        .iter()
+        .map(|(first, second)| bits_tensor(first + second, crate::BITS_OUT, device))
+        .collect();
+
+    let inputs = Tensor::stack(inputs, 0);
+    let outputs = Tensor::stack(outputs, 0);
+
+    AddBatch { inputs, outputs }
 }
 
 pub fn create_loader<B: Backend>(device: &B::Device) -> Arc<dyn DataLoader<AddBatch<B>>> {
