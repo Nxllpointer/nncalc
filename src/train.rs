@@ -5,23 +5,21 @@ use burn::{
     optim::AdamConfig,
     prelude::Backend,
     tensor::backend::AutodiffBackend,
-    train::{
-        metric::LossMetric, LearnerBuilder, RegressionOutput, TrainOutput, TrainStep, ValidStep,
-    },
+    train::{LearnerBuilder, TrainOutput, TrainStep, ValidStep},
 };
 
-impl<B: AutodiffBackend> TrainStep<crate::AddBatch<B>, RegressionOutput<B>>
+impl<B: AutodiffBackend> TrainStep<crate::AddBatch<B>, crate::AddOutput<B>>
     for crate::model::AddModel<B>
 {
-    fn step(&self, item: crate::AddBatch<B>) -> burn::train::TrainOutput<RegressionOutput<B>> {
-        let (regression, loss) = self.forward_regression(item);
-        TrainOutput::new(self, loss.backward(), regression)
+    fn step(&self, item: crate::AddBatch<B>) -> burn::train::TrainOutput<crate::AddOutput<B>> {
+        let output = self.forward_output(item);
+        TrainOutput::new(self, output.loss.backward(), output)
     }
 }
 
-impl<B: Backend> ValidStep<crate::AddBatch<B>, RegressionOutput<B>> for crate::AddModel<B> {
-    fn step(&self, item: crate::AddBatch<B>) -> RegressionOutput<B> {
-        self.forward_regression(item).0
+impl<B: Backend> ValidStep<crate::AddBatch<B>, crate::AddOutput<B>> for crate::AddModel<B> {
+    fn step(&self, item: crate::AddBatch<B>) -> crate::AddOutput<B> {
+        self.forward_output(item)
     }
 }
 
@@ -36,8 +34,10 @@ pub fn train<B: AutodiffBackend>(device: &B::Device) {
     let loader_valid = crate::create_loader(device);
 
     let learner = LearnerBuilder::<B, _, _, _, _, _>::new("./learn")
-        .metric_train_numeric(LossMetric::new())
-        .metric_valid_numeric(LossMetric::new())
+        .metric_train_numeric(crate::output::BitLossMetric::default())
+        .metric_valid_numeric(crate::output::BitLossMetric::default())
+        .metric_train_numeric(crate::output::NumericValueLossMetric::default())
+        .metric_valid_numeric(crate::output::NumericValueLossMetric::default())
         .num_epochs(10)
         .devices(vec![device.clone()])
         .build(model, optimizer, lr_scheduler);

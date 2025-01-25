@@ -3,7 +3,6 @@ use burn::{
     nn::{loss::MseLoss, Linear, LinearConfig, Sigmoid, Tanh},
     prelude::Backend,
     tensor::Tensor,
-    train::RegressionOutput,
 };
 
 const HIDDEN_SIZE: usize = 30;
@@ -30,14 +29,13 @@ impl<B: Backend> AddModel<B> {
         x
     }
 
-    pub fn forward_regression(
-        &self,
-        batch: crate::AddBatch<B>,
-    ) -> (RegressionOutput<B>, Tensor<B, 2>) {
-        let outputs = self.forward(batch.inputs);
+    pub fn forward_output(&self, batch: crate::AddBatch<B>) -> crate::AddOutput<B> {
+        let outputs = self.forward(batch.inputs.clone());
         let loss = MseLoss::new().forward_no_reduction(outputs.clone(), batch.outputs.clone());
-        let mean_loss = loss.clone().mean_dim(1).mean();
-        let regression_output = RegressionOutput::new(mean_loss, outputs, batch.outputs);
-        (regression_output, loss)
+        crate::AddOutput {
+            batch,
+            outputs,
+            loss,
+        }
     }
 }

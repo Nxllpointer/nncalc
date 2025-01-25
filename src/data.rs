@@ -9,7 +9,7 @@ use burn::{
         dataset::Dataset,
     },
     prelude::Backend,
-    tensor::Tensor,
+    tensor::{Int, Tensor},
 };
 
 #[derive(Clone, Debug)]
@@ -89,4 +89,17 @@ pub fn bits_tensor<B: Backend>(
     }
 
     Tensor::from_floats(bits.as_slice(), device)
+}
+
+pub fn bits_to_numeric<B: Backend>(bits: Tensor<B, 2, Int>) -> Tensor<B, 1, Int> {
+    let [batch_size, bit_count] = bits.dims();
+    let mult: Vec<u32> = (0..bit_count)
+        .into_iter()
+        .map(|bit| 2u32.pow(bit as u32))
+        .collect();
+    let mult: Tensor<B, 2, Int> = Tensor::<B, 1, Int>::from_ints(mult.as_slice(), &bits.device())
+        .unsqueeze::<2>()
+        .repeat_dim(0, batch_size);
+
+    bits.mul(mult).sum_dim(1).squeeze(1)
 }
