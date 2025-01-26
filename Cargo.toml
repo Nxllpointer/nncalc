@@ -5,3 +5,6 @@ edition = "2021"
 
 [dependencies]
 burn = { version = "0.16.0", features = ["train", "tui", "metrics", "autodiff", "ndarray"] }
+
+[profile.dev.package."*"]
+opt-level = 3
