@@ -21,7 +21,7 @@ fn main() {
 
         println!(
             "{first} + {second} = {}",
-            sp_project::infer::<NdArray>(&NdArrayDevice::Cpu, first, second)
+            nncalc::infer::<NdArray>(&NdArrayDevice::Cpu, first, second)
         );
     }
 }
